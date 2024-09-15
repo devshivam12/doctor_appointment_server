@@ -7,6 +7,7 @@ import authRoute from './routes/authRoute.js'
 import userRouter from './routes/user.route.js'
 import doctorRouter from './routes/doctor.route.js'
 import reviewRouter from './routes/review.route.js'
+import { errorMiddleware } from "./middleware/error.js"
 
 dotenv.config()
 
@@ -49,6 +50,8 @@ app.use('/api/v1/auth', authRoute)
 app.use('/api/v1/user', userRouter)
 app.use('/api/v1/doctor', doctorRouter)
 app.use('/api/v1/review', reviewRouter)
+
+app.use(errorMiddleware)
 
 app.listen(port, () => {
     connectMongo()

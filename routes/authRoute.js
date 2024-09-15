@@ -1,9 +1,10 @@
 import express from 'express'
-import { login, register } from '../controllers/authController.js'
+import { register, login } from '../controllers/authController.js'
+import { loginValidator, registerValidator, validateHandler } from '../lib/validator.js'
 
 const router = express.Router()
 
-router.post('/register', register)
-router.post('/login', login)
+router.post('/register', registerValidator(), validateHandler, register)
+router.post('/login', loginValidator(), validateHandler, login)
 
 export default router

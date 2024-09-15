@@ -1,3 +1,3 @@
 const DOCTOR_TOKEN = "doctor"
 
-export {DOCTOR_TOKEN}
+export { DOCTOR_TOKEN }

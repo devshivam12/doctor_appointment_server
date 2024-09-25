@@ -104,3 +104,10 @@ export const login = async (req, res, next) => {
         return res.status(500).json({ success: false, message: "Internal server error" })
     }
 }
+
+export const logout = TryCatch(async(req,res,next) => {
+    res.clearCookie("doctor").json({
+        success : true,
+        message : "Logged out"
+    })
+})

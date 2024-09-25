@@ -26,7 +26,14 @@ const DoctorSchema = new mongoose.Schema({
     enum: ["pending", "approved", "cancelled"],
     default: "pending",
   },
+  location : {
+    type : String,
+  },
   appointments: [{ type: mongoose.Types.ObjectId, ref: "Appointment" }],
 });
+
+DoctorSchema.index({ name: 'text', specialization: 'text', location: 'text' });
+DoctorSchema.index({ averageRating: 1 });
+DoctorSchema.index({ ticketPrice: 1 })
 
 export default mongoose.model("Doctor", DoctorSchema);

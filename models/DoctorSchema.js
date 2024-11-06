@@ -4,6 +4,7 @@ const DoctorSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   name: { type: String, required: true },
+  doctorId: { type: Number },
   phone: { type: Number },
   photo: { type: String },
   ticketPrice: { type: Number },
@@ -14,20 +15,51 @@ const DoctorSchema = new mongoose.Schema({
   },
   specialization: { type: String },
   qualifications: { type: Array },
-  experiences: { type: Array },
-  bio: { type: String, maxLength: 50 },
-  about: { type: String },
-  timeSlots: { type: Array },
+  experiences: [
+    {
+      startingDate: Date,
+      endingDate: Date,
+      position: String,
+      hospital: String
+    }
+  ],
+  bio: {
+    type: String,
+    maxlength: 150,
+  },
+  about: {
+    type: String,
+    maxlength: 15000,
+  },
+  timeSlots: [
+    {
+      day: String,
+      startingTime: String,
+      endingTime: String
+    }
+  ],
   reviews: [{ type: mongoose.Types.ObjectId, ref: "Review" }],
   averageRating: { type: Number, default: 0 },
   totalRating: { type: Number, default: 0 },
+  gender: {
+    type: String,
+    enum: ['male', 'female', 'other']
+  },
+  availability: {
+    type: [String],
+    enum: ["anytime", 'morning', 'afternoon', 'evening', 'weekends']
+  },
+  consultaion_type: {
+    type: [String],
+    enum: ["in-person", 'video call', 'telehealth', 'message']
+  },
   isApproved: {
     type: String,
     enum: ["pending", "approved", "cancelled"],
     default: "pending",
   },
-  location : {
-    type : String,
+  location: {
+    type: String,
   },
   appointments: [{ type: mongoose.Types.ObjectId, ref: "Appointment" }],
 });

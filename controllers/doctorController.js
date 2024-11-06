@@ -3,6 +3,22 @@ import Booking from '../models/BookingSchema.js';
 import { TryCatch } from '../middleware/error.js';
 import { ErrorHandler } from '../utils/utility.js';
 
+export const createDoctor = TryCatch(async (req, res, next) => {
+    const doctorData = req.body
+
+    if (!doctorData) {
+        return next(new ErrorHandler("Please provide doctor data", 404))
+    }
+
+    const result = await Doctor.create(doctorData)
+
+    return res.status(200).json({
+        success: true,
+        message: "Data is saved",
+        data: result
+    })
+})
+
 export const updateDoctor = async (req, res) => {
     const id = req.params.id;
 
@@ -76,7 +92,120 @@ export const getSingleDoctor = async (req, res) => {
     }
 }
 
+const specializations = [
+    "surgeon", "neurology", "pathology", "cardiologist", "dermatologist",
+    "orthopedic", "pediatrician", "psychiatry", "otorhinolaryngology",
+    "obstetrics-and-gynaecology", "immunology", "oncology", "general-surgery",
+    "urology", "physical-therapy", "anesthesiology", "geriatrics",
+    "rheumatology", "ophthalmology", "cardiothoracic-surgery", "pulmonology",
+    "plastic-surgery", "radiology", "gastroenterology", "endocrinology",
+    "nephrology", "preventive-healthcare", "vascular-surgery", "medical-genetics",
+    "neurosurgery", "colorectal-surgery", "occupational-medicine",
+    "intensive-care-medicine", "hematology", "diagnostic-radiology",
+    "neonatology", "pediatric-surgery", "pediatric-hematology-oncology", "podiatry"
+];
 
+const genders = ["male", "female", "other"]
+const availability = ["anytime", 'morning', 'afternoon', 'evening', 'weekends']
+const hospitals = ["Apollo", "Mayo Clinic", "Cleveland Clinic", "Johns Hopkins", "Mount Sinai"];
+const positions = ["Senior Surgeon", "Consultant", "Chief Medical Officer", "Resident Doctor", "Attending Physician"];
+const daysOfWeek = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+const degrees = ["MBBS", "MD", "PhD", "DO", "MSc", "BSc", "BDS"];
+const universities = ["Harvard", "Stanford", "Oxford", "Cambridge", "Yale", "UCLA", "Johns Hopkins"];
+
+
+const getRandomElement = (array) => array[Math.floor(Math.random() * array.length)]
+const getRandomSubset = (array) => array.filter(() => Math.random() > 0.5)
+const getRandomTime = () => `${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}:00`
+
+
+const getRandomDate = (startYear, endYear) => {
+    const year = Math.floor(Math.random() * (endYear - startYear + 1)) + startYear
+    const month = String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')
+    const day = String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')
+    return `${year}-${month}-${day}`
+}
+
+const generateDoctorExpereince = () => ({
+    startingDate: getRandomDate(2010, 2019),
+    endingDate: getRandomDate(2020, 2024),
+    position: getRandomElement(positions),
+    hospital: getRandomElement(hospitals)
+})
+
+const generateTimeSlots = () => {
+    const slots = Array.from({ length: Math.floor(Math.random() * 3) + 1 }, () => ({
+        day: getRandomElement(daysOfWeek),
+        startingTime: getRandomTime(),
+        endingTime: getRandomTime()
+    }));
+
+    slots.forEach(slot => {
+        if (slot.startingTime > slot.endingTime) [slot.startingTime, slot.endingTime] = [slot.endingTime, slot.startingTime]
+    });
+    return slots
+}
+
+const generateQualification = () => {
+    const startingDate = getRandomDate(2000, 2018);
+    const endingDate = getRandomDate(2019, 2024);
+
+    if (new Date(startingDate) > new Date(endingDate)) {
+        [startingDate, endingDate] = [endingDate, startingDate]
+    }
+
+    return {
+        startingDate,
+        endingDate,
+        degree: getRandomElement(degrees),
+        university: getRandomElement(universities)
+    }
+}
+
+
+const generateDoctorData = () => ({
+    email: `doctor${Math.floor(Math.random() * 10000)}@example.com`,
+    password: "password123",
+    name: `Doctor ${Math.floor(Math.random() * 100)}`,
+    phone: Math.floor(Math.random() * 10000000000),
+    photo: "https://example.com/photo.jpg",
+    ticketPrice: Math.floor(Math.random() * 200) + 50,
+    role: "doctor",
+    specialization: specializations[Math.floor(Math.random() * specializations.length)
+    ],
+    qualifications: Array.from({ length: Math.floor(Math.random() * 3) + 1 }, generateQualification),
+    experiences: Array.from({ length: Math.floor(Math.random() * 3) + 1 }, generateDoctorExpereince),
+    bio: "Experienced doctor with a focus on patient care.",
+    about: "Dedicated medical professional. Lorem ipsum dolor sit amet consectetur adipisicing elit. Necessitatibus aspernatur dicta nobis, sapiente dolore voluptate pariatur tenetur eligendi labore nesciunt. Dignissimos, officiis maiores?. Necessitatibus aspernatur dicta nobis, sapiente dolore voluptate pariatur tenetur eligendi labore nesciunt. Dignissimos, officiis maiores?",
+    timeSlots: generateTimeSlots(),
+    reviews: [],
+    averageRating: Math.floor(Math.random() * 5) + 1,
+    totalRating: 20,
+    gender: getRandomElement(genders),
+    availability: getRandomSubset(availability),
+    consultaion_type: ["in-person", "video call"],
+    isApproved: "approved",
+    location: "New York",
+    appointments: [],
+});
+
+
+export const addMultipleDoctor = TryCatch(async (req, res, next) => {
+    const { quantity } = req.body
+
+    if (!quantity) {
+        return next(new ErrorHandler("Please add quantity", 408))
+    }
+    const doctorData = Array.from({ length: quantity }, generateDoctorData);
+
+    const result = await Doctor.insertMany(doctorData)
+
+    res.status(201).json({
+        success: true,
+        message: `${result.length} data added successfully`,
+        data: result
+    })
+})
 
 export const getAllDoctors = TryCatch(async (req, res, next) => {
     const {
@@ -93,98 +222,96 @@ export const getAllDoctors = TryCatch(async (req, res, next) => {
         ...invalidQuery
     } = req.query;
 
-    // create the base match object for filetering document
-    const matchQuery = { isApproved: 'approved' };
+    console.log("Query parameters:", req.query);
 
 
     if (Object.keys(invalidQuery).length > 0) {
-        return next(new ErrorHandler("Invalid query please check it !!", 400))
+        return next(new ErrorHandler("Invalid query, please check it!", 400));
     }
 
-    // Text search using mongoDb $text operator
-
-    if (query) {
-        matchQuery.$text = { $search: query }
-    }
-
-    // Filter by specification 
-    if (specialization) {
-        matchQuery.specialization = specialization
-    }
-
-    // filter by location 
-
-    if (location) {
-        matchQuery.location = location
-    }
-
-    // filter by rating
-    if (minRating || maxRating) {
-        matchQuery.averageRating = {
-            ...(minRating && { $gte: parseFloat(minRating) }),
-            ...(maxRating && { $lte: parseFloat(maxRating) })
-        }
-    }
-
-    if (minPrice || maxPrice) {
-        matchQuery.ticketPrice = {
-            ...(minPrice && { $gte: parseInt(minPrice) }),
-            ...(maxPrice && { $lte: parseFloat(maxPrice) })
-        }
-    }
-
-    // Filter by experience level
-    // if (experienceLevel) {
-    //     matchQuery.experiences = { $size: parseInt(experienceLevel) }
-    // }
-
-
-    let doctors = await Doctor.find(matchQuery)
-        .select('-password')
-        .skip((parseInt(page) - 1) * parseInt(limit))
-        .limit(parseInt(limit))
-
+    let minExp, maxExp;
     if (experience) {
-        doctors = doctors.filter(doctor => {
-            const totalExperience = doctor.experiences.reduce((sum, exp) => {
-                const start = new Date(exp.startingDate)
-                const last = exp.endingDate ? new Date(exp.endingDate) : new Date()
-                const yearsOfExpoerience = (last - start) / (1000 * 60 * 60 * 24 * 365)
-                return sum + yearsOfExpoerience
-            }, 0)
-            return totalExperience >= parseFloat(experience)
-        });
+        const expRange = experience.split("-");
+        minExp = parseFloat(expRange[0]);
+        maxExp = expRange[1] === "+" ? Infinity : parseFloat(expRange[1]);
     }
 
-    const totalDocs = doctors.length
+    const pipeline = [
+        {
+            $match: {
+                isApproved: 'approved',
+                ...(query && { $text: { $search: query } }),
+                ...(specialization && { specialization }),
+                ...(location && { location }),
+                ...(minRating || maxRating ? {
+                    averageRating: {
+                        ...(minRating && { $gte: parseFloat(minRating) }),
+                        ...(maxRating && { $lte: parseFloat(maxRating) })
+                    }
+                } : {}),
+                ...(minPrice || maxPrice ? {
+                    ticketPrice: {
+                        ...(minPrice && { $gte: parseFloat(minPrice) }),
+                        ...(maxPrice && { $lte: parseFloat(maxPrice) })
+                    }
+                } : {})
+            }
+        },
+        {
 
-    // Aggregation
-    // const doctors = await Doctor.aggregate([
-    //     {
-    //         $match: matchQuery,
-    //     },
-    //     {
-    //         $project: {
-    //             password: 0
-    //             ,
-    //         }
-    //     },
-    //     {
-    //         $skip: (parseInt(page - 1) * parseInt(limit))
-    //     },
-    //     {
-    //         $limit: parseInt(limit)
-    //     }
-    // ]);
+            $addFields: {
+                totalExperience: {
+                    $reduce: {
+                        input: "$experiences",
+                        initialValue: 0,
+                        in: {
+                            $add: [
+                                "$$value",
+                                {
+                                    $divide: [
+                                        {
+                                            $subtract: [
+                                                { $ifNull: [{ $toDate: "$$this.endingDate" }, new Date()] },
+                                                { $toDate: "$$this.startingDate" }
+                                            ]
+                                        },
+                                        1000 * 60 * 60 * 24 * 365 // Convert milliseconds to years
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
 
-    // const totalDocs = await Doctor.countDocuments(matchQuery)
 
-    // if(doctors.length === 0){
-    //     return next(new ErrorHandler("No doctor is found based on criteria",404))
-    // }
+        },
+        ...(experience ? [{
+            $match: {
+                totalExperience: {
+                    $gte: minExp,
+                    ...(maxExp !== Infinity && { $lte: maxExp })
+                }
+            }
+        }] : []),
+        {
+            $project: {
+                password: 0
+            }
+        },
+        {
+            $skip: (parseInt(page) - 1) * parseInt(limit)
+        },
+        {
+            $limit: parseInt(limit)
+        }
+    ];
+
+    const doctors = await Doctor.aggregate(pipeline);
+    const totalDocs = await Doctor.countDocuments(pipeline[0].$match);
 
     if (totalDocs === 0) {
-        return next(new ErrorHandler("No doctor is found based on criteria", 404))
+        return next(new ErrorHandler("No doctor found based on criteria", 404));
     }
 
     res.status(200).json({
@@ -196,8 +323,9 @@ export const getAllDoctors = TryCatch(async (req, res, next) => {
             totalPage: Math.ceil(totalDocs / parseInt(limit)),
             totalDocs,
         }
-    })
-})
+    });
+});
+
 
 export const getDoctorProfile = async (req, res) => {
     const doctorId = req.userId;

@@ -7,11 +7,9 @@ import { ErrorHandler } from '../utils/utility.js'
 import { sendToken } from '../utils/feature.js'
 import { TryCatch } from '../middleware/error.js'
 
-// const generateToken = user => {
-//     return jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET_KEY, {
-//         expiresIn: "15d",
-//     })
-// }
+const generateId = () => {
+    return Math.floor(10000 + Math.random() * 90000)
+}
 
 export const register = TryCatch(async (req, res, next) => {
     const { email, password, name, role, gender, photo } = req.body
@@ -47,7 +45,8 @@ export const register = TryCatch(async (req, res, next) => {
             password: hashPassword,
             photo,
             role,
-            gender
+            gender,
+            patientId: generateId()
         })
     }
 
@@ -58,7 +57,8 @@ export const register = TryCatch(async (req, res, next) => {
             password: hashPassword,
             photo,
             role,
-            gender
+            gender,
+            doctorId: generateId()
         })
     }
 
@@ -105,9 +105,9 @@ export const login = async (req, res, next) => {
     }
 }
 
-export const logout = TryCatch(async(req,res,next) => {
+export const logout = TryCatch(async (req, res, next) => {
     res.clearCookie("doctor").json({
-        success : true,
-        message : "Logged out"
+        success: true,
+        message: "Logged out"
     })
 })

@@ -242,7 +242,7 @@ export const getAllDoctors = TryCatch(async (req, res, next) => {
                 isApproved: 'approved',
                 ...(query && { $text: { $search: query } }),
                 ...(specialization && { specialization }),
-                ...(location && { location }),
+                ...(location && { location: { $regex: location, $options: "i" } }),
                 ...(minRating || maxRating ? {
                     averageRating: {
                         ...(minRating && { $gte: parseFloat(minRating) }),

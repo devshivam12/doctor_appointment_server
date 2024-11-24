@@ -14,7 +14,14 @@ const DoctorSchema = new mongoose.Schema({
     default: "doctor",
   },
   specialization: { type: String },
-  qualifications: { type: Array },
+  qualifications : [
+    {
+      startingDate : Date,
+      endingDate : Date,
+      degree : String,
+      university : String
+    }
+  ],
   experiences: [
     {
       startingDate: Date,
@@ -23,6 +30,10 @@ const DoctorSchema = new mongoose.Schema({
       hospital: String
     }
   ],
+  totalExperience : {
+    type : Number,
+    default : 0
+  },
   bio: {
     type: String,
     maxlength: 150,
@@ -34,8 +45,8 @@ const DoctorSchema = new mongoose.Schema({
   timeSlots: [
     {
       day: String,
-      startingTime: String,
-      endingTime: String
+      startingTime: Date,
+      endingTime: Date
     }
   ],
   reviews: [{ type: mongoose.Types.ObjectId, ref: "Review" }],

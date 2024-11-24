@@ -3,47 +3,105 @@ import Booking from '../models/BookingSchema.js';
 import { TryCatch } from '../middleware/error.js';
 import { ErrorHandler } from '../utils/utility.js';
 
-export const createDoctor = TryCatch(async (req, res, next) => {
-    const doctorData = req.body
+
+export const saveDoctor = TryCatch(async (req, res, next) => {
+    const { id } = req.params;
+    const doctorData = req.body;
 
     if (!doctorData) {
-        return next(new ErrorHandler("Please provide doctor data", 404))
+        return next(new ErrorHandler("Please provide doctor data", 400))
     }
-
-    const result = await Doctor.create(doctorData)
-
-    return res.status(200).json({
-        success: true,
-        message: "Data is saved",
-        data: result
-    })
-})
-
-export const updateDoctor = async (req, res) => {
-    const id = req.params.id;
 
     try {
-        const updatedDoctor = await Doctor.findByIdAndUpdate(
-            id,
-            { $set: req.body },
-            { new: true }
-        );
 
-        if (!updatedDoctor) {
-            return res.status(404).json({ success: false, message: "Doctor not found" })
+        if (doctorData.experiences && Array.isArray(doctorData.experiences)) {
+            doctorData.totalExperience = doctorData.experiences.reduce((total, exp) => {
+                if (exp.startingDate && exp.endingDate) {
+                    const start = new Date(exp.startingDate)
+                    const end = new Date(exp.endingDate)
+                    const years = (end - start)(1000 * 60 * 60 * 24 * 365.25)
+                    return total + years
+                }
+                return total
+            }, 0).toFixed(1)
         }
 
-        res.status(200).json(
-            {
+        const existingData = await Doctor.findOne({ id })
+        if (existingData) {
+            // update the data if there is a data in a doctor collection
+            const updateDoctorData = await Doctor.findByIdAndUpdate(
+                id,
+                { $set: doctorData },
+                { new: true, runValidator: true }
+            )
+            return res.status(200).json({
                 success: true,
-                message: "Successfully Updated",
-                data: updatedDoctor
+                message: "Doctor data updated",
+                data: updateDoctorData
             })
-
-    } catch (error) {
-        res.status(500).json({ success: false, message: "Failed to update", error: error.message })
+        }
+        else {
+            const newDoctorId = Math.floor(100000 + Math.random() * 900000)
+            doctorData.doctorId = newDoctorId
+            const createDoctorData = await Doctor.create(doctorData)
+            return res.send(200).json({
+                success: true,
+                message: "Doctor data created successfully",
+                data: createDoctorData
+            })
+        }
     }
-}
+    catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: "IOnternal server error",
+            error: error.message
+        })
+    }
+})
+
+
+// export const createDoctor = TryCatch(async (req, res, next) => {
+//     const doctorData = req.body
+
+//     if (!doctorData) {
+//         return next(new ErrorHandler("Please provide doctor data", 404))
+//     }
+
+//     const result = await Doctor.create(doctorData)
+
+//     return res.status(200).json({
+//         success: true,
+//         message: "Data is saved",
+//         data: result
+//     })
+// })
+
+// export const updateDoctor = async (req, res) => {
+//     const id = req.params.id;
+
+//     try {
+//         const updatedDoctor = await Doctor.findByIdAndUpdate(
+//             id,
+//             { $set: req.body },
+//             { new: true }
+//         );
+
+//         if (!updatedDoctor) {
+//             return res.status(404).json({ success: false, message: "Doctor not found" })
+//         }
+
+//         res.status(200).json(
+//             {
+//                 success: true,
+//                 message: "Successfully Updated",
+//                 data: updatedDoctor
+//             })
+
+//     } catch (error) {
+//         res.status(500).json({ success: false, message: "Failed to update", error: error.message })
+//     }
+// }
 
 export const deletedDoctor = async (req, res) => {
     const id = req.params.id;
@@ -208,7 +266,7 @@ export const addMultipleDoctor = TryCatch(async (req, res, next) => {
 })
 
 export const getAllDoctors = TryCatch(async (req, res, next) => {
-    const {
+    let {
         query,
         specialization,
         minRating,
@@ -230,10 +288,17 @@ export const getAllDoctors = TryCatch(async (req, res, next) => {
     }
 
     let minExp, maxExp;
-    if (experience) {
+    if (/^\d+\s*$/.test(experience)) {
+        experience = `${experience.trim()}+`; // Add "+" back for correct interpretation
+    }
+
+    if (experience?.includes("+")) {
+        minExp = parseFloat(experience.split("+")[0]);
+        maxExp = Infinity; // Treat as "10+"
+    } else if (experience?.includes("-")) {
         const expRange = experience.split("-");
         minExp = parseFloat(expRange[0]);
-        maxExp = expRange[1] === "+" ? Infinity : parseFloat(expRange[1]);
+        maxExp = parseFloat(expRange[1]);
     }
 
     const pipeline = [
@@ -261,36 +326,31 @@ export const getAllDoctors = TryCatch(async (req, res, next) => {
 
             $addFields: {
                 totalExperience: {
-                    $reduce: {
-                        input: "$experiences",
-                        initialValue: 0,
-                        in: {
-                            $add: [
-                                "$$value",
-                                {
-                                    $divide: [
-                                        {
-                                            $subtract: [
-                                                { $ifNull: [{ $toDate: "$$this.endingDate" }, new Date()] },
-                                                { $toDate: "$$this.startingDate" }
-                                            ]
-                                        },
-                                        1000 * 60 * 60 * 24 * 365 // Convert milliseconds to years
-                                    ]
-                                }
-                            ]
+                    $sum: {
+                        $map: {
+                            input: "$experiences",
+                            as: "experience",
+                            in: {
+                                $divide: [
+                                    {
+                                        $subtract: [
+                                            { $ifNull: ["$$experience.endingDate", new Date()] },
+                                            "$$experience.startingDate"
+                                        ]
+                                    },
+                                    1000 * 60 * 60 * 24 * 365 // Convert milliseconds to years
+                                ]
+                            }
                         }
                     }
                 }
             }
-
-
         },
         ...(experience ? [{
             $match: {
                 totalExperience: {
                     $gte: minExp,
-                    ...(maxExp !== Infinity && { $lte: maxExp })
+                    ...(maxExp !== null && { $lte: maxExp })
                 }
             }
         }] : []),

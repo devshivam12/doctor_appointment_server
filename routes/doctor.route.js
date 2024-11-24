@@ -1,5 +1,5 @@
 import express from 'express'
-import { addMultipleDoctor, deletedDoctor, getAllDoctors, getDoctorProfile, getSingleDoctor, updateDoctor, createDoctor } from '../controllers/doctorController.js'
+import { addMultipleDoctor, deletedDoctor, getAllDoctors, getDoctorProfile, getSingleDoctor, saveDoctor } from '../controllers/doctorController.js'
 
 import { isAuthentication, restricte } from '../middleware/auth.js'
 
@@ -16,8 +16,9 @@ router.get('/', getAllDoctors)
 router.use(isAuthentication)
 
 router.get('/:id', getSingleDoctor)
-router.put('/:id', restricte(["doctor"]), updateDoctor)
-router.post('/create-doctor', restricte(["doctor"]), createDoctor)
+router.post('/create-doctor', restricte(['doctor'], saveDoctor))
+// router.put('/:id', restricte(["doctor"]), updateDoctor)
+// router.post('/create-doctor', restricte(["doctor"]), createDoctor)
 router.delete('/:id', restricte(["doctor"]), deletedDoctor)
 router.get('/profile/me', restricte(['doctor']), getDoctorProfile)
 
